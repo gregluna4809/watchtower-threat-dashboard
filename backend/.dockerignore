@@ -1,0 +1,12 @@
+target/
+.idea/
+*.iml
+logs/
+log/
+*.log
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+~$*
