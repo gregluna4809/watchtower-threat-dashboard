@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: watchtower
+  profiles:
+    active: dev
+
+server:
+  address: 127.0.0.1
+  port: 8088
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+watchtower:
+  version: dev
+  capture:
+    poll-interval-ms: 3000
+    command-timeout-ms: 5000
+  ingest:
+    interval-ms: 3500
+  enrichment:
+    interval-ms: 10000
+  scoring:
+    interval-ms: 5000
+    high-risk-countries: []
+    known-browsers: chrome.exe,firefox.exe,msedge.exe,opera.exe,brave.exe
+    common-ports: 80,443,53,22,25,110,143,465,587,993,995,3389,5222,5223,8080,8443
+  geoip:
+    city-db-path: ${user.home}/.watchtower/geoip/GeoLite2-City.mmdb
+    asn-db-path: ${user.home}/.watchtower/geoip/GeoLite2-ASN.mmdb
+  intel:
+    abuseipdb:
+      api-key: ${ABUSEIPDB_API_KEY:}
+      base-url: https://api.abuseipdb.com/api/v2
+      enabled: true
+    rate-limit:
+      per-hour: 30
+      per-day: 500
