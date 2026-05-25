@@ -23,6 +23,9 @@ watchtower:
     interval-ms: 3500
   enrichment:
     interval-ms: 10000
+    rdns-interval-ms: 30000
+    rdns-timeout-ms: 2000
+    rdns-batch-size: 20
   scoring:
     interval-ms: 5000
     high-risk-countries: []

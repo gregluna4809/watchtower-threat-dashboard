@@ -10,6 +10,8 @@ public record EndpointDto(
         String countryIso,
         String countryName,
         String city,
+        Double latitude,
+        Double longitude,
         String reverseDns,
         Long connectionCount,
         Integer latestScore,
@@ -17,4 +19,3 @@ public record EndpointDto(
         OffsetDateTime lastSeen
 ) {
 }
-

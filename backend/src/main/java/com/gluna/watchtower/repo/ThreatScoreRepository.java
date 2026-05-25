@@ -4,12 +4,15 @@ import com.gluna.watchtower.model.TargetType;
 import com.gluna.watchtower.model.ThreatScore;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 public interface ThreatScoreRepository extends JpaRepository<ThreatScore, Long> {
 
     Optional<ThreatScore> findFirstByTargetTypeAndTargetIdOrderByComputedAtDesc(TargetType type, Long id);
+
+    List<ThreatScore> findByTargetTypeAndTargetIdOrderByComputedAtDesc(TargetType type, Long id, Pageable pageable);
 
     @Query("""
             SELECT latest.connectionProcessId, MAX(latest.score)

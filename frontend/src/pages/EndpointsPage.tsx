@@ -1,4 +1,5 @@
 import { formatDistanceToNowStrict } from 'date-fns';
+import { Link, useNavigate } from 'react-router-dom';
 import { CountryFlag } from '../components/CountryFlag';
 import { EndpointCard } from '../components/EndpointCard';
 import { ScoreBadge } from '../components/ScoreBadge';
@@ -10,6 +11,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 
 export function EndpointsPage() {
+  const navigate = useNavigate();
   const endpoints = useEndpoints();
   const sorted = [...(endpoints.data?.items ?? [])].sort((a, b) => (b.latestScore ?? 0) - (a.latestScore ?? 0));
 
@@ -25,7 +27,11 @@ export function EndpointsPage() {
       <div className="grid gap-4 xl:grid-cols-3">
         {endpoints.isLoading
           ? Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-64" />)
-          : sorted.slice(0, 3).map((endpoint) => <EndpointCard key={endpoint.id} endpoint={endpoint} />)}
+          : sorted.slice(0, 3).map((endpoint) => (
+              <Link key={endpoint.id} to={`/endpoints/${endpoint.id}`} className="block hover:opacity-95">
+                <EndpointCard endpoint={endpoint} />
+              </Link>
+            ))}
       </div>
 
       <Card>
@@ -62,11 +68,23 @@ export function EndpointsPage() {
                 </TableHeader>
                 <TableBody>
                   {sorted.map((endpoint) => (
-                    <TableRow key={endpoint.id}>
+                    <TableRow
+                      key={endpoint.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/endpoints/${endpoint.id}`)}
+                    >
                       <TableCell className="text-right">
                         <ScoreBadge score={endpoint.latestScore} />
                       </TableCell>
-                      <TableCell className="text-right font-mono text-sm">{endpoint.ip}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        <Link
+                          to={`/endpoints/${endpoint.id}`}
+                          className="hover:text-amber-200"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {endpoint.ip}
+                        </Link>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <CountryFlag iso={endpoint.countryIso} />

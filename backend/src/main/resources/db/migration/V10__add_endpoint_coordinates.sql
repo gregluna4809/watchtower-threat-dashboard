@@ -1,0 +1,2 @@
+ALTER TABLE remote_endpoints ADD COLUMN latitude DOUBLE PRECISION;
+ALTER TABLE remote_endpoints ADD COLUMN longitude DOUBLE PRECISION;

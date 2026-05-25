@@ -5,7 +5,8 @@ public record GeoIpResult(
         String asnOrg,
         String countryIso,
         String countryName,
-        String city
+        String city,
+        Double latitude,
+        Double longitude
 ) {
 }
-

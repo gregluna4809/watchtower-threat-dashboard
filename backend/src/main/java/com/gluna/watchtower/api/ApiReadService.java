@@ -2,14 +2,19 @@ package com.gluna.watchtower.api;
 
 import com.gluna.watchtower.api.dto.ConnectionDto;
 import com.gluna.watchtower.api.dto.EndpointDto;
+import com.gluna.watchtower.api.dto.EndpointScoresDto;
 import com.gluna.watchtower.api.dto.EndpointSummary;
 import com.gluna.watchtower.api.dto.Page;
 import com.gluna.watchtower.api.dto.ProcessDto;
 import com.gluna.watchtower.api.dto.ProcessSummary;
 import com.gluna.watchtower.api.dto.ScoreTimelinePoint;
 import com.gluna.watchtower.api.dto.SummaryDto;
+import com.gluna.watchtower.api.dto.ThreatScoreDto;
 import com.gluna.watchtower.api.dto.TopProcessDto;
 import com.gluna.watchtower.exception.NotFoundException;
+import com.gluna.watchtower.model.TargetType;
+import com.gluna.watchtower.model.ThreatScore;
+import com.gluna.watchtower.repo.ThreatScoreRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -18,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +34,11 @@ public class ApiReadService {
     private static final int MAX_LIMIT = 500;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final ThreatScoreRepository threatScoreRepository;
 
-    public ApiReadService(NamedParameterJdbcTemplate jdbcTemplate) {
+    public ApiReadService(NamedParameterJdbcTemplate jdbcTemplate, ThreatScoreRepository threatScoreRepository) {
         this.jdbcTemplate = jdbcTemplate;
+        this.threatScoreRepository = threatScoreRepository;
     }
 
     public Page<ConnectionDto> connections(
@@ -99,6 +107,16 @@ public class ApiReadService {
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("Connection not found: " + id));
+    }
+
+    public Page<ConnectionDto> endpointConnections(Long endpointId, Integer requestedLimit, Integer requestedOffset) {
+        endpoint(endpointId);
+        return connectionsByFilter("c.endpoint_id = :endpointId", Map.of("endpointId", endpointId), requestedLimit, requestedOffset);
+    }
+
+    public Page<ConnectionDto> processConnections(Long processId, Integer requestedLimit, Integer requestedOffset) {
+        process(processId);
+        return connectionsByFilter("c.process_id = :processId", Map.of("processId", processId), requestedLimit, requestedOffset);
     }
 
     public Page<ProcessDto> processes(Integer requestedLimit, Integer requestedOffset) {
@@ -173,12 +191,13 @@ public class ApiReadService {
                 """;
         String group = """
                  GROUP BY e.id, e.ip, e.asn, e.asn_org, e.country_iso, e.country_name,
-                          e.city, e.reverse_dns, e.first_seen, e.last_seen
+                          e.city, e.latitude, e.longitude, e.reverse_dns, e.first_seen, e.last_seen
                 """;
         List<EndpointDto> items = jdbcTemplate.query(
                 """
                 SELECT e.id, host(e.ip) AS ip, e.asn, e.asn_org, e.country_iso, e.country_name,
-                       e.city, e.reverse_dns, count(c.id) AS connection_count, max(ls.score) AS latest_score,
+                       e.city, e.latitude, e.longitude,
+                       e.reverse_dns, count(c.id) AS connection_count, max(ls.score) AS latest_score,
                        e.first_seen, e.last_seen
                 """
                         + from
@@ -195,7 +214,8 @@ public class ApiReadService {
         Map<String, Object> params = Map.of("id", id);
         String sql = """
                 SELECT e.id, host(e.ip) AS ip, e.asn, e.asn_org, e.country_iso, e.country_name,
-                       e.city, e.reverse_dns, count(c.id) AS connection_count, max(ls.score) AS latest_score,
+                       e.city, e.latitude, e.longitude,
+                       e.reverse_dns, count(c.id) AS connection_count, max(ls.score) AS latest_score,
                        e.first_seen, e.last_seen
                 FROM remote_endpoints e
                 LEFT JOIN connections c ON c.endpoint_id = e.id
@@ -207,12 +227,31 @@ public class ApiReadService {
                 ) ls ON ls.target_id = c.id
                 WHERE e.id = :id
                 GROUP BY e.id, e.ip, e.asn, e.asn_org, e.country_iso, e.country_name,
-                         e.city, e.reverse_dns, e.first_seen, e.last_seen
+                         e.city, e.latitude, e.longitude, e.reverse_dns, e.first_seen, e.last_seen
                 """;
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> endpointDto(rs))
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("Endpoint not found: " + id));
+    }
+
+    public EndpointScoresDto endpointScores(Long endpointId, Integer requestedLimit) {
+        endpoint(endpointId);
+        int limit = requestedLimit == null ? 20 : requestedLimit;
+        if (limit < 1) {
+            throw new IllegalArgumentException("limit must be at least 1");
+        }
+        if (limit > MAX_LIMIT) {
+            throw new IllegalArgumentException("limit must be less than or equal to 500");
+        }
+
+        List<ThreatScoreDto> history = threatScoreRepository
+                .findByTargetTypeAndTargetIdOrderByComputedAtDesc(TargetType.ENDPOINT, endpointId, PageRequest.of(0, limit))
+                .stream()
+                .map(this::threatScoreDto)
+                .toList();
+        ThreatScoreDto latest = history.isEmpty() ? null : history.getFirst();
+        return new EndpointScoresDto(latest, history);
     }
 
     public SummaryDto summary() {
@@ -299,6 +338,47 @@ public class ApiReadService {
         }
         String where = filters.isEmpty() ? "" : " WHERE " + String.join(" AND ", filters);
         return new QueryParts(where, params);
+    }
+
+    private Page<ConnectionDto> connectionsByFilter(
+            String filter,
+            Map<String, Object> filterParams,
+            Integer requestedLimit,
+            Integer requestedOffset
+    ) {
+        Pagination pagination = pagination(requestedLimit, requestedOffset);
+        Map<String, Object> params = new HashMap<>(filterParams);
+        params.put("limit", pagination.limit());
+        params.put("offset", pagination.offset());
+
+        String from = """
+                FROM connections c
+                LEFT JOIN processes p ON p.id = c.process_id
+                LEFT JOIN remote_endpoints e ON e.id = c.endpoint_id
+                LEFT JOIN (
+                    SELECT DISTINCT ON (target_id) target_id, score
+                    FROM threat_scores
+                    WHERE target_type = 'CONNECTION'
+                    ORDER BY target_id, computed_at DESC
+                ) ls ON ls.target_id = c.id
+                WHERE %s
+                """.formatted(filter);
+        String select = """
+                SELECT c.id, c.protocol, c.state, host(c.local_ip) AS local_ip, c.local_port,
+                       host(e.ip) AS remote_ip, c.remote_port,
+                       p.id AS process_id, p.pid, p.name AS process_name, p.path, p.signed, p.signer,
+                       e.id AS endpoint_id, e.country_iso, e.country_name, e.asn_org,
+                       ls.score AS latest_score,
+                       c.first_seen, c.last_seen, c.observation_count
+                """;
+
+        List<ConnectionDto> items = jdbcTemplate.query(
+                select + from + " ORDER BY c.last_seen DESC LIMIT :limit OFFSET :offset",
+                params,
+                (rs, rowNum) -> connectionDto(rs)
+        );
+        int total = count("SELECT count(*) " + from, params);
+        return new Page<>(items, total, pagination.limit(), pagination.offset());
     }
 
     private Pagination pagination(Integer requestedLimit, Integer requestedOffset) {
@@ -388,11 +468,21 @@ public class ApiReadService {
                 trimToNull(rs.getString("country_iso")),
                 rs.getString("country_name"),
                 rs.getString("city"),
+                rs.getObject("latitude", Double.class),
+                rs.getObject("longitude", Double.class),
                 rs.getString("reverse_dns"),
                 rs.getObject("connection_count", Long.class),
                 rs.getObject("latest_score", Integer.class),
                 rs.getObject("first_seen", OffsetDateTime.class),
                 rs.getObject("last_seen", OffsetDateTime.class)
+        );
+    }
+
+    private ThreatScoreDto threatScoreDto(ThreatScore threatScore) {
+        return new ThreatScoreDto(
+                threatScore.getScore(),
+                threatScore.getReasons(),
+                threatScore.getComputedAt()
         );
     }
 

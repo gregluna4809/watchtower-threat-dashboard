@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { ProcessCard } from '../components/ProcessCard';
 import { useProcesses } from '../hooks/useProcesses';
 import { Alert } from '../components/ui/alert';
@@ -33,7 +34,9 @@ export function ProcessesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sorted.map((process) => (
-            <ProcessCard key={process.id} process={process} />
+            <Link key={process.id} to={`/processes/${process.id}`} className="block hover:opacity-95">
+              <ProcessCard process={process} />
+            </Link>
           ))}
         </div>
       )}

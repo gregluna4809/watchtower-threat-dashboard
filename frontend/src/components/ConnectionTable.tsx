@@ -1,4 +1,5 @@
 import { formatDistanceToNowStrict } from 'date-fns';
+import { Link, useNavigate } from 'react-router-dom';
 import type { ConnectionDto } from '../lib/types';
 import { CountryFlag } from './CountryFlag';
 import { ScoreBadge } from './ScoreBadge';
@@ -23,6 +24,8 @@ function endpointLabel(connection: ConnectionDto) {
 }
 
 export function ConnectionTable({ connections, isLoading, error }: ConnectionTableProps) {
+  const navigate = useNavigate();
+
   if (error) {
     return <Alert variant="destructive">{error.message}</Alert>;
   }
@@ -68,19 +71,45 @@ export function ConnectionTable({ connections, isLoading, error }: ConnectionTab
         </TableHeader>
         <TableBody>
           {sorted.map((connection) => (
-            <TableRow key={connection.id}>
+            <TableRow
+              key={connection.id}
+              className="cursor-pointer"
+              onClick={() => navigate(`/connections/${connection.id}`)}
+            >
               <TableCell className="text-right">
                 <ScoreBadge score={connection.latestScore} />
               </TableCell>
               <TableCell>
                 <div className="font-medium text-slate-100">{connection.process?.name ?? 'Unknown'}</div>
-                <div className="font-mono text-xs text-slate-500">PID {connection.process?.pid ?? '--'}</div>
+                {connection.process ? (
+                  <Link
+                    to={`/processes/${connection.process.id}`}
+                    className="font-mono text-xs text-slate-500 hover:text-slate-200"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    PID {connection.process.pid ?? '--'}
+                  </Link>
+                ) : (
+                  <div className="font-mono text-xs text-slate-500">PID --</div>
+                )}
               </TableCell>
               <TableCell className="font-mono text-sm">{connection.protocol}</TableCell>
               <TableCell className="text-right font-mono text-sm">
                 {connection.localIp}:{connection.localPort}
               </TableCell>
-              <TableCell className="text-right font-mono text-sm">{endpointLabel(connection)}</TableCell>
+              <TableCell className="text-right font-mono text-sm">
+                {connection.endpoint ? (
+                  <Link
+                    to={`/endpoints/${connection.endpoint.id}`}
+                    className="hover:text-amber-200"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {endpointLabel(connection)}
+                  </Link>
+                ) : (
+                  endpointLabel(connection)
+                )}
+              </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <CountryFlag iso={connection.endpoint?.countryIso} />

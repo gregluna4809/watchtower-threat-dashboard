@@ -347,5 +347,83 @@ When the user says "go off script," ask which constraint they want relaxed and w
 - Mobile UI
 
 ---
+# Watchtower — Spec Amendment for Detail Views (v1.1)
+
+> **Action required:** Append this entire document as a new section to `PROJECT-SPEC.md` before running any Phase 12+ prompt. The new behavioral rails depend on Claude Code seeing these decisions on its first re-read of the spec.
+
+---
+
+## §11. Detail Views and Geolocation (v1.1 addition)
+
+This amendment extends Watchtower's read-only API and frontend with rich per-entity detail views. The Prime Directive (§0) is unaffected — these are display-only additions. **No new mutating endpoints, no actions, no host changes.**
+
+### §11.1 New API endpoints (all read-only, all under `/api/v1`)
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/endpoints/{id}/connections` | All connections that have ever touched this endpoint, joined with their process |
+| GET | `/endpoints/{id}/observations` | Time-bucketed observation count (per-minute or per-hour buckets, depending on the `window` param) for charting |
+| GET | `/endpoints/{id}/scores` | The latest threat score plus the last N score rows for history (default N=20) |
+| GET | `/processes/{id}/connections` | All connections this process has ever made, joined with their endpoint |
+| GET | `/processes/{id}/observations` | Time-bucketed connection count for this process |
+| GET | `/connections/{id}/observations` | Time-bucketed observation count for this specific connection row |
+
+Each accepts `?window=` with values `1h`, `24h`, `7d`, `30d` (default `24h`). Bucket size is auto-selected: `1h` → 1-min buckets, `24h` → 5-min, `7d` → 1-hour, `30d` → 6-hour.
+
+### §11.2 Reverse DNS
+
+Add a `reverse_dns` column to `remote_endpoints` (already in the original schema — confirm it exists; if not, add via Flyway migration).
+
+A new `ReverseDnsService` resolves IPs via `InetAddress.getByName(ip).getCanonicalHostName()` with:
+- Timeout: 2 seconds per lookup (use `Executors` with future timeout — `InetAddress` has no built-in timeout)
+- Skip private/loopback/multicast (same logic as `GeoIpService`)
+- Run as a background enrichment task at low priority (every 30 seconds, batch of 20)
+- Cache result in the `reverse_dns` column; if lookup returns the IP unchanged, store the IP and don't retry for 7 days
+- Failures: store NULL, retry on next cycle
+
+### §11.3 Frontend routes
+
+| Route | Page |
+|---|---|
+| `/endpoints/:id` | Endpoint detail page (map, ASN, hostname, connections list, threat history, observation timeline) |
+| `/processes/:id` | Process detail page (path, signature, endpoints contacted, observation timeline) |
+| `/connections/:id` | Connection detail page (embedded process and endpoint summaries, observation timeline) |
+
+### §11.4 Frontend design rules for detail pages
+
+- Same dark theme, same fonts, same accent color as the rest of the app
+- Two-column layout above the fold on desktop, single-column on narrow viewports
+- Map (endpoints only): Leaflet with OpenStreetMap tiles, 300px tall, dark map style (Stadia Maps Alidade Smooth Dark or CartoDB Dark Matter — both free for non-commercial / low-volume)
+- A pin at the endpoint's geolocation; **do not** draw a line "from the user" — we don't reliably know the user's coordinates and faking it is misleading
+- Below the map: a metadata card (IP, hostname, country, ASN, organization, first seen, last seen, total observations)
+- Threat score breakdown card: latest score number + list of `reasons` from the `threat_scores.reasons` JSONB
+- Connections table (filtered to this endpoint or process): same columns as the main `ConnectionsPage` table
+- Observation timeline: Recharts `<BarChart>` showing observation count per bucket
+- "Back to {Endpoints,Processes,Connections}" breadcrumb in the top-left of every detail page
+
+### §11.5 Make existing tables clickable
+
+Every IP, PID, and connection row in the existing `ConnectionsPage`, `ProcessesPage`, and `EndpointsPage` becomes a link to the corresponding detail page. Use `<Link>` (React Router), not `<a>`. The whole row is clickable; cursor changes to pointer on hover; hover styling already exists.
+
+### §11.6 Forbidden additions in this scope
+
+- No write operations on endpoints, processes, connections, or scores
+- No "block this IP" / "kill this process" / "add to whitelist" buttons or backend support
+- No outbound calls beyond the existing GeoIP local lookup and (optional) AbuseIPDB
+- No user accounts, comments, tags, or per-user state
+- No exporting to external tools (CSV export is fine as a separate future phase)
+
+### §11.7 Out of scope for v1.1 (deferred to later)
+
+- Whitelist mechanism (a future phase will add a `whitelisted_processes` table)
+- LLM-powered "explain this endpoint" feature (future phase)
+- Historical replay / time-machine UI (future phase)
+- CSV / PDF export (future phase)
+
+---
+
+End of amendment.
+
+---
 
 End of spec.

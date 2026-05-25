@@ -8,7 +8,6 @@ import com.maxmind.geoip2.model.CityResponse;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -48,7 +47,9 @@ public class GeoIpService {
                     blankToNull(asnResponse.getAutonomousSystemOrganization()),
                     blankToNull(cityResponse.getCountry().getIsoCode()),
                     blankToNull(cityResponse.getCountry().getName()),
-                    blankToNull(cityResponse.getCity().getName())
+                    blankToNull(cityResponse.getCity().getName()),
+                    cityResponse.getLocation().getLatitude(),
+                    cityResponse.getLocation().getLongitude()
             ));
         } catch (AddressNotFoundException ex) {
             return Optional.empty();
@@ -62,21 +63,7 @@ public class GeoIpService {
     }
 
     public boolean isPublicAddress(String ip) {
-        if (ip == null || ip.isBlank()) {
-            return false;
-        }
-        try {
-            InetAddress address = InetAddress.getByName(ip);
-            byte[] bytes = address.getAddress();
-            return !address.isAnyLocalAddress()
-                    && !address.isLoopbackAddress()
-                    && !address.isLinkLocalAddress()
-                    && !address.isSiteLocalAddress()
-                    && !address.isMulticastAddress()
-                    && !isCarrierGradeNat(bytes);
-        } catch (UnknownHostException ex) {
-            return false;
-        }
+        return IpUtils.isPublicAddress(ip);
     }
 
     @PreDestroy
@@ -98,15 +85,6 @@ public class GeoIpService {
             log.warn("{} database could not be opened at {}: {}", label, path, ex.getMessage());
             return Optional.empty();
         }
-    }
-
-    private boolean isCarrierGradeNat(byte[] bytes) {
-        if (bytes.length != 4) {
-            return false;
-        }
-        int first = bytes[0] & 0xff;
-        int second = bytes[1] & 0xff;
-        return first == 100 && second >= 64 && second <= 127;
     }
 
     private Integer longToInteger(Long value) {

@@ -69,11 +69,39 @@ export interface EndpointDto {
   countryIso: string | null;
   countryName: string | null;
   city: string | null;
+  latitude: number | null;
+  longitude: number | null;
   reverseDns: string | null;
   connectionCount: number;
   latestScore: number | null;
   firstSeen: string;
   lastSeen: string;
+}
+
+export type ObservationWindow = '1h' | '24h' | '7d' | '30d';
+
+export interface ObservationBucket {
+  bucketStart: string;
+  bucketEnd: string;
+  count: number;
+}
+
+export interface ThreatReason {
+  rule?: string;
+  points?: number;
+  detail?: string;
+  [key: string]: unknown;
+}
+
+export interface ThreatScoreDto {
+  score: number;
+  reasons: ThreatReason[];
+  computedAt: string;
+}
+
+export interface EndpointScoresDto {
+  latest: ThreatScoreDto | null;
+  history: ThreatScoreDto[];
 }
 
 export interface RuleDto {

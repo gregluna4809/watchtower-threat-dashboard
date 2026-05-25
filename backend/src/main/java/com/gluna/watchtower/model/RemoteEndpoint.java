@@ -43,6 +43,12 @@ public class RemoteEndpoint {
     @Column(name = "city", columnDefinition = "text")
     private String city;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @Column(name = "reverse_dns", columnDefinition = "text")
     private String reverseDns;
 
@@ -105,6 +111,22 @@ public class RemoteEndpoint {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
     public String getReverseDns() {

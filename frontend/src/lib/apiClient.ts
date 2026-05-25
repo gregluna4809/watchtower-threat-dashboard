@@ -2,8 +2,11 @@ import type {
   ConnectionDto,
   ConnectionFilters,
   EndpointDto,
+  EndpointScoresDto,
   ErrorResponse,
   HealthResponse,
+  ObservationBucket,
+  ObservationWindow,
   Page,
   ProcessDto,
   RuleDto,
@@ -81,10 +84,32 @@ export const apiClient = {
       })
     ),
   connection: (id: number) => request<ConnectionDto>(`/connections/${id}`),
+  connectionObservations: (id: number, window: ObservationWindow) =>
+    request<ObservationBucket[]>(withQuery(`/connections/${id}/observations`, { window })),
   processes: () => request<Page<ProcessDto>>('/processes?limit=500&offset=0'),
   process: (id: number) => request<ProcessDto>(`/processes/${id}`),
+  processConnections: (id: number, filters: ConnectionFilters = {}) =>
+    request<Page<ConnectionDto>>(
+      withQuery(`/processes/${id}/connections`, {
+        limit: filters.limit ?? 100,
+        offset: filters.offset ?? 0
+      })
+    ),
+  processObservations: (id: number, window: ObservationWindow) =>
+    request<ObservationBucket[]>(withQuery(`/processes/${id}/observations`, { window })),
   endpoints: () => request<Page<EndpointDto>>('/endpoints?limit=500&offset=0'),
   endpoint: (id: number) => request<EndpointDto>(`/endpoints/${id}`),
+  endpointConnections: (id: number, filters: ConnectionFilters = {}) =>
+    request<Page<ConnectionDto>>(
+      withQuery(`/endpoints/${id}/connections`, {
+        limit: filters.limit ?? 100,
+        offset: filters.offset ?? 0
+      })
+    ),
+  endpointObservations: (id: number, window: ObservationWindow) =>
+    request<ObservationBucket[]>(withQuery(`/endpoints/${id}/observations`, { window })),
+  endpointScores: (id: number, limit = 20) =>
+    request<EndpointScoresDto>(withQuery(`/endpoints/${id}/scores`, { limit })),
   rules: () => request<RuleDto[]>('/rules'),
   toggleRule: (code: string, body: RuleUpdateRequest) =>
     request<RuleDto>(`/rules/${encodeURIComponent(code)}`, {

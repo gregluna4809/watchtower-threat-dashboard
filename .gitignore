@@ -1,13 +1,8 @@
-# =========================================================
-# WATCHTOWER - FULL STACK GITIGNORE
-# =========================================================
+# Watchtower repository ignore rules
 
-# =========================================================
-# JAVA / SPRING BOOT / MAVEN
-# =========================================================
+# Java / Spring Boot / Maven
 target/
-build/
-out/
+backend/target/
 
 *.class
 *.jar
@@ -16,32 +11,31 @@ out/
 
 .mvn/wrapper/maven-wrapper.jar
 
-# =========================================================
-# NODE / REACT / VITE
-# =========================================================
+# Node / React / Vite
 node_modules/
-dist/
 coverage/
 
 frontend/node_modules/
 frontend/dist/
 frontend/build/
+frontend/coverage/
+frontend/.vite/
 
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# =========================================================
-# ENVIRONMENT / SECRETS
-# =========================================================
+# Environment / secrets
 .env
 .env.*
 *.env
+!.env.example
 
-application-local.yml
-application-dev.yml
-application-prod.yml
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-dev.yml
+backend/src/main/resources/application-prod.yml
+!backend/src/main/resources/application-example.yml
 
 secrets/
 keys/
@@ -51,9 +45,7 @@ keys/
 *.p12
 *.jks
 
-# =========================================================
-# DATABASE / LOCAL STORAGE
-# =========================================================
+# Database / local storage
 *.db
 *.sqlite
 *.sqlite3
@@ -63,14 +55,10 @@ pgdata/
 watchtower_pgdata/
 docker-data/
 
-# =========================================================
-# GEOIP / THREAT INTEL
-# =========================================================
+# GeoIP / threat intel data
 *.mmdb
 
-# =========================================================
-# LOGS / TEMP FILES
-# =========================================================
+# Logs / temp files
 logs/
 *.log
 
@@ -78,55 +66,38 @@ tmp/
 temp/
 .cache/
 
-# =========================================================
-# IDE / EDITOR
-# =========================================================
-
-# IntelliJ
+# IDE / editor
 .idea/
 *.iml
 
-# VS Code
 .vscode/
 
-# Eclipse
 .project
 .classpath
 .settings/
 
-# =========================================================
-# OPERATING SYSTEM FILES
-# =========================================================
+# Operating system files
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Windows temp weirdness
 *.tmp
 ~$*
 
-# =========================================================
-# DOCKER
-# =========================================================
+# Docker local state
 .docker/
 
-# =========================================================
-# TEST / REPORT OUTPUT
-# =========================================================
+# Test / report output
 reports/
 surefire-reports/
+backend/target/surefire-reports/
 
-# =========================================================
-# AI / INTERNAL WORKFLOW FILES
-# =========================================================
+# Local-only workflow files
 Prompts/
-
 CLAUDE.md
 AGENTS.md
 
-# =========================================================
-# OPTIONAL LOCAL FILES
-# =========================================================
+# Optional local files
 local/
 sandbox/
 experiments/

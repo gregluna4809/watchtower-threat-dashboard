@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: watchtower
+  datasource:
+    url: jdbc:postgresql://<postgres_host>:<postgres_port>/<database_name>
+    username: <database_user>
+    password: <database_password>
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  address: <backend_bind_address>
+  port: <backend_port>
+
+watchtower:
+  version: <application_version>
+  capture:
+    poll-interval-ms: <poll_interval_ms>
+    command-timeout-ms: <command_timeout_ms>
+  ingest:
+    interval-ms: <ingest_interval_ms>
+  enrichment:
+    interval-ms: <enrichment_interval_ms>
+  scoring:
+    interval-ms: <scoring_interval_ms>
+    high-risk-countries: []
+    known-browsers: <comma_separated_browser_process_names>
+    common-ports: <comma_separated_common_ports>
+  geoip:
+    city-db-path: <path_to_geolite2_city_mmdb>
+    asn-db-path: <path_to_geolite2_asn_mmdb>
+  intel:
+    abuseipdb:
+      api-key: <optional_abuseipdb_api_key>
+      base-url: <abuseipdb_base_url>
+      enabled: <true_or_false>
+    rate-limit:
+      per-hour: <requests_per_hour>
+      per-day: <requests_per_day>

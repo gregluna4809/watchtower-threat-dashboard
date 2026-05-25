@@ -9,6 +9,7 @@ import com.gluna.watchtower.process.TasklistService;
 import com.gluna.watchtower.repo.ProcessRepository;
 import com.gluna.watchtower.repo.RemoteEndpointRepository;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -24,27 +25,33 @@ public class EnrichmentService {
     private final RemoteEndpointRepository remoteEndpointRepository;
     private final ProcessRepository processRepository;
     private final GeoIpService geoIpService;
+    private final ReverseDnsService reverseDnsService;
     private final ThreatIntelService threatIntelService;
     private final TasklistService tasklistService;
     private final SignatureService signatureService;
     private final TransactionTemplate transactionTemplate;
+    private final int rdnsBatchSize;
 
     public EnrichmentService(
             RemoteEndpointRepository remoteEndpointRepository,
             ProcessRepository processRepository,
             GeoIpService geoIpService,
+            ReverseDnsService reverseDnsService,
             ThreatIntelService threatIntelService,
             TasklistService tasklistService,
             SignatureService signatureService,
-            TransactionTemplate transactionTemplate
+            TransactionTemplate transactionTemplate,
+            @Value("${watchtower.enrichment.rdns-batch-size:20}") int rdnsBatchSize
     ) {
         this.remoteEndpointRepository = remoteEndpointRepository;
         this.processRepository = processRepository;
         this.geoIpService = geoIpService;
+        this.reverseDnsService = reverseDnsService;
         this.threatIntelService = threatIntelService;
         this.tasklistService = tasklistService;
         this.signatureService = signatureService;
         this.transactionTemplate = transactionTemplate;
+        this.rdnsBatchSize = rdnsBatchSize;
     }
 
     @Async("enrichmentExecutor")
@@ -73,6 +80,33 @@ public class EnrichmentService {
         }
         if (checked > 0) {
             log.info("Threat intel enrichment: {} AbuseIPDB cache rows refreshed", checked);
+        }
+    }
+
+    @Async("enrichmentExecutor")
+    @Scheduled(fixedDelayString = "${watchtower.enrichment.rdns-interval-ms:30000}")
+    public void enrichReverseDns() {
+        List<RemoteEndpoint> endpoints = remoteEndpointRepository.findTopNeedingReverseDns(rdnsBatchSize);
+        int enriched = 0;
+        for (RemoteEndpoint endpoint : endpoints) {
+            try {
+                if (!IpUtils.isPublicAddress(endpoint.getIp())) {
+                    continue;
+                }
+                boolean saved = Boolean.TRUE.equals(transactionTemplate.execute(status ->
+                        reverseDnsService.resolve(endpoint.getIp())
+                                .map(hostname -> saveReverseDns(endpoint.getId(), hostname))
+                                .orElse(false)
+                ));
+                if (saved) {
+                    enriched++;
+                }
+            } catch (RuntimeException ex) {
+                log.warn("Reverse DNS enrichment failed for endpoint {}: {}", endpoint.getId(), ex.getMessage());
+            }
+        }
+        if (!endpoints.isEmpty()) {
+            log.info("Reverse DNS enrichment: {} endpoints updated from {} candidates", enriched, endpoints.size());
         }
     }
 
@@ -109,6 +143,18 @@ public class EnrichmentService {
                     endpoint.setCountryIso(result.countryIso());
                     endpoint.setCountryName(result.countryName());
                     endpoint.setCity(result.city());
+                    endpoint.setLatitude(result.latitude());
+                    endpoint.setLongitude(result.longitude());
+                    remoteEndpointRepository.save(endpoint);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    private boolean saveReverseDns(Long endpointId, String hostname) {
+        return remoteEndpointRepository.findById(endpointId)
+                .map(endpoint -> {
+                    endpoint.setReverseDns(hostname);
                     remoteEndpointRepository.save(endpoint);
                     return true;
                 })
