@@ -1,7 +1,7 @@
 import { Client, type IMessage, type IStompSocket, type StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-const WS_URL = 'http://127.0.0.1:8088/ws';
+const WS_URL = '/ws';
 const INITIAL_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 
