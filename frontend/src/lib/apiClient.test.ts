@@ -7,6 +7,10 @@ describe('apiClient', () => {
     vi.restoreAllMocks();
   });
 
+  it('uses same-origin API paths', () => {
+    expect(API_BASE_URL).toBe('/api/v1');
+  });
+
   it('requests the health endpoint with JSON headers', async () => {
     const health = {
       status: 'UP',

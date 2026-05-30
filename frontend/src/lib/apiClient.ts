@@ -15,7 +15,7 @@ import type {
   SummaryDto
 } from './types';
 
-export const API_BASE_URL = 'http://127.0.0.1:8088/api/v1';
+export const API_BASE_URL = '/api/v1';
 
 export class ApiError extends Error {
   readonly status: number;

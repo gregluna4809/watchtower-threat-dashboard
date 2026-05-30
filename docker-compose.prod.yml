@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: watchtower-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${WATCHTOWER_DB_NAME:-watchtower}
+      POSTGRES_USER: ${WATCHTOWER_DB_USER:-watchtower}
+      POSTGRES_PASSWORD: ${WATCHTOWER_DB_PASSWORD:?WATCHTOWER_DB_PASSWORD is required}
+    volumes:
+      - watchtower_pgdata:/var/lib/postgresql/data
+    networks:
+      - default
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: watchtower-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${WATCHTOWER_DB_NAME:-watchtower}
+      SPRING_DATASOURCE_USERNAME: ${WATCHTOWER_DB_USER:-watchtower}
+      SPRING_DATASOURCE_PASSWORD: ${WATCHTOWER_DB_PASSWORD:?WATCHTOWER_DB_PASSWORD is required}
+      ABUSEIPDB_API_KEY: ${ABUSEIPDB_API_KEY:-}
+    expose:
+      - "8088"
+    networks:
+      - default
+      - edge
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: watchtower-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    expose:
+      - "80"
+    networks:
+      - edge
+
+volumes:
+  watchtower_pgdata:
+    name: watchtower_pgdata
+
+networks:
+  edge:
+    external: true
+    name: edge
