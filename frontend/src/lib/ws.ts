@@ -1,7 +1,7 @@
 import { Client, type IMessage, type IStompSocket, type StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-const WS_URL = '/ws';
+export const LIVE_ENDPOINT_PATH = '/ws';
 const INITIAL_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 
@@ -14,7 +14,10 @@ let status: WebSocketStatus = 'disconnected';
 const statusListeners = new Set<StatusListener>();
 
 const client = new Client({
-  webSocketFactory: () => new SockJS(WS_URL) as IStompSocket,
+  webSocketFactory: () =>
+    new SockJS(LIVE_ENDPOINT_PATH, undefined, {
+      transports: ['websocket', 'eventsource']
+    }) as IStompSocket,
   reconnectDelay: INITIAL_RECONNECT_DELAY_MS,
   heartbeatIncoming: 10000,
   heartbeatOutgoing: 10000,
