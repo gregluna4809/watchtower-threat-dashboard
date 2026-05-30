@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useConnections } from '../hooks/useConnections';
@@ -47,6 +47,13 @@ export function DashboardPage() {
         <p className="mt-1 text-sm text-slate-400">Current local network observations and advisory scoring.</p>
       </div>
 
+      <div className="flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" aria-hidden="true" />
+        <span>
+          This deployment observes container/network traffic. Host-level observation requires the planned host observer.
+        </span>
+      </div>
+
       {summary.error ? <Alert variant="destructive">{summary.error.message}</Alert> : null}
       {honeypot.error ? <Alert variant="destructive">{honeypot.error.message}</Alert> : null}
 
@@ -69,8 +76,8 @@ export function DashboardPage() {
             Array.from({ length: 2 }).map((_, index) => <Skeleton key={index} className="h-32" />)
           ) : (
             <>
-              <StatCard label="Total Honeypot Hits" value={honeypot.data?.totalHits ?? 0} />
-              <StatCard label="Unique IPs" value={honeypot.data?.uniqueIps ?? 0} />
+              <StatCard label="Sentinel requests" value={honeypot.data?.totalHits ?? 0} />
+              <StatCard label="Sentinel source IPs" value={honeypot.data?.uniqueIps ?? 0} />
             </>
           )}
         </div>
@@ -78,14 +85,14 @@ export function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Top User Agents</CardTitle>
+              <CardTitle>Sentinel User Agents</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {honeypot.isLoading ? (
                 Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-12" />)
               ) : (honeypot.data?.topUserAgents.length ?? 0) === 0 ? (
                 <div className="rounded-md border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-                  Honeypot user agents will appear after requests are observed.
+                  No Sentinel user agents observed yet.
                 </div>
               ) : (
                 honeypot.data?.topUserAgents.map((agent) => (
@@ -100,14 +107,14 @@ export function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Requests</CardTitle>
+              <CardTitle>Sentinel Recent Requests</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {honeypot.isLoading ? (
                 Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-14" />)
               ) : (honeypot.data?.recentRequests.length ?? 0) === 0 ? (
                 <div className="rounded-md border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-                  Honeypot requests will appear here after `/honeypot/*` is hit.
+                  No Sentinel requests observed yet. Requests to `/honeypot` and `/honeypot/*` will appear here.
                 </div>
               ) : (
                 honeypot.data?.recentRequests.map((request) => (
@@ -133,11 +140,11 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Score History</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0">
             {timeline.error ? <Alert variant="destructive">{timeline.error.message}</Alert> : null}
             {timeline.isLoading ? (
               <Skeleton className="h-72 w-full" />
@@ -146,8 +153,8 @@ export function DashboardPage() {
                 Score timeline will populate as connection scores are computed.
               </div>
             ) : (
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-72 min-h-72 w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <LineChart data={timelineData} margin={{ left: 8, right: 16, top: 16, bottom: 8 }}>
                     <XAxis
                       dataKey="time"
