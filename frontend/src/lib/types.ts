@@ -131,6 +131,27 @@ export interface SummaryDto {
   topProcesses: TopProcessDto[];
 }
 
+export interface HoneypotUserAgentDto {
+  userAgent: string;
+  count: number;
+}
+
+export interface HoneypotRequestDto {
+  id: number;
+  sourceIp: string;
+  observedAt: string;
+  requestPath: string;
+  userAgent: string | null;
+  method: string;
+}
+
+export interface HoneypotSummaryDto {
+  totalHits: number;
+  uniqueIps: number;
+  topUserAgents: HoneypotUserAgentDto[];
+  recentRequests: HoneypotRequestDto[];
+}
+
 export interface ScoreTimelinePoint {
   minute: string;
   maxScore: number;

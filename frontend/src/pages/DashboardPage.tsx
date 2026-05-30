@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useConnections } from '../hooks/useConnections';
+import { useHoneypotSummary } from '../hooks/useHoneypotSummary';
 import { useLiveConnections } from '../hooks/useLiveConnections';
 import { useLiveStats } from '../hooks/useLiveStats';
 import { useScoreTimeline } from '../hooks/useScoreTimeline';
@@ -28,6 +29,7 @@ export function DashboardPage() {
   useLiveConnections();
   useLiveStats();
   const summary = useSummary();
+  const honeypot = useHoneypotSummary();
   const connections = useConnections({ limit: 100, offset: 0 });
   const timeline = useScoreTimeline('1h');
   const topConnections = [...(connections.data?.items ?? [])]
@@ -46,6 +48,7 @@ export function DashboardPage() {
       </div>
 
       {summary.error ? <Alert variant="destructive">{summary.error.message}</Alert> : null}
+      {honeypot.error ? <Alert variant="destructive">{honeypot.error.message}</Alert> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {summary.isLoading ? (
@@ -58,6 +61,75 @@ export function DashboardPage() {
             <StatCard label="Mean score" value={(summary.data?.meanScore ?? 0).toFixed(1)} />
           </>
         )}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+          {honeypot.isLoading ? (
+            Array.from({ length: 2 }).map((_, index) => <Skeleton key={index} className="h-32" />)
+          ) : (
+            <>
+              <StatCard label="Total Honeypot Hits" value={honeypot.data?.totalHits ?? 0} />
+              <StatCard label="Unique IPs" value={honeypot.data?.uniqueIps ?? 0} />
+            </>
+          )}
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top User Agents</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {honeypot.isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-12" />)
+              ) : (honeypot.data?.topUserAgents.length ?? 0) === 0 ? (
+                <div className="rounded-md border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+                  Honeypot user agents will appear after requests are observed.
+                </div>
+              ) : (
+                honeypot.data?.topUserAgents.map((agent) => (
+                  <div key={agent.userAgent} className="grid grid-cols-[1fr_auto] gap-4 rounded-md bg-slate-950 p-3">
+                    <div className="truncate text-sm text-slate-200">{agent.userAgent}</div>
+                    <div className="font-mono text-sm tabular-nums text-slate-400">{agent.count}</div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Requests</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {honeypot.isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-14" />)
+              ) : (honeypot.data?.recentRequests.length ?? 0) === 0 ? (
+                <div className="rounded-md border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+                  Honeypot requests will appear here after `/honeypot/*` is hit.
+                </div>
+              ) : (
+                honeypot.data?.recentRequests.map((request) => (
+                  <div key={request.id} className="rounded-md bg-slate-950 p-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0 truncate font-mono text-sm text-slate-100">
+                        {request.method} {request.requestPath}
+                      </div>
+                      <div className="shrink-0 font-mono text-xs text-slate-500">
+                        {format(new Date(request.observedAt), 'HH:mm:ss')}
+                      </div>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-4 text-xs text-slate-500">
+                      <span className="font-mono">{request.sourceIp}</span>
+                      <span className="truncate">{request.userAgent ?? 'Unknown'}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">

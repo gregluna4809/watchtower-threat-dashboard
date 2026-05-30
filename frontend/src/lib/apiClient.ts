@@ -5,6 +5,7 @@ import type {
   EndpointScoresDto,
   ErrorResponse,
   HealthResponse,
+  HoneypotSummaryDto,
   ObservationBucket,
   ObservationWindow,
   Page,
@@ -117,6 +118,7 @@ export const apiClient = {
       body: JSON.stringify(body)
     }),
   summary: () => request<SummaryDto>('/stats/summary'),
+  honeypotSummary: () => request<HoneypotSummaryDto>('/honeypot/summary'),
   scoreTimeline: (window: string) =>
     request<ScoreTimelinePoint[]>(withQuery('/stats/score-timeline', { window }))
 };
