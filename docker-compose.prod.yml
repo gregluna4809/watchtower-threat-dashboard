@@ -64,6 +64,8 @@ services:
       - SYS_ADMIN
     security_opt:
       - no-new-privileges:true
+      - seccomp:unconfined
+      - apparmor:unconfined
     pid: host
     volumes:
       - /proc:/host/proc:ro
