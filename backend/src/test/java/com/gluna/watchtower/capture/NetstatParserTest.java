@@ -126,6 +126,32 @@ class NetstatParserTest {
         assertThat(ipv6.pid()).isEqualTo(9876);
     }
 
+    @Test
+    void parsesLinuxSsWildcardBindAddressesWithoutLiteralAsteriskIps() {
+        List<ConnectionSnapshot> snapshots = parser.parseSs(
+                List.of(
+                        "Netid State  Recv-Q Send-Q Local Address:Port Peer Address:Port Process",
+                        "tcp   LISTEN 0      511                *:8080              *:*     users:((\"java\",pid=8080,fd=12))",
+                        "udp   UNCONN 0      0                  *:5353              *:*     -"
+                ),
+                Instant.parse("2026-05-30T12:00:00Z")
+        );
+
+        assertThat(snapshots).hasSize(2);
+        assertThat(snapshots)
+                .extracting(ConnectionSnapshot::localIp)
+                .containsExactly("0.0.0.0", "0.0.0.0");
+        assertThat(snapshots)
+                .extracting(ConnectionSnapshot::remoteIp)
+                .containsOnlyNulls();
+        assertThat(snapshots)
+                .extracting(ConnectionSnapshot::remotePort)
+                .containsOnlyNulls();
+        assertThat(snapshots.get(0).state()).isEqualTo("LISTENING");
+        assertThat(snapshots.get(0).pid()).isEqualTo(8080);
+        assertThat(snapshots.get(1).pid()).isNull();
+    }
+
     private List<String> loadFixture() {
         return loadFixture("/netstat-sample.txt");
     }

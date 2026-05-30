@@ -93,8 +93,8 @@ public class NetstatParser {
     }
 
     private ConnectionSnapshot parseSsColumns(String protocol, String[] columns, Instant observedAt) {
-        AddressPort local = parseAddressPort(columns[4]);
-        AddressPort remote = parseAddressPort(columns[5]);
+        AddressPort local = parseAddressPort(columns[4], AddressRole.LOCAL);
+        AddressPort remote = parseAddressPort(columns[5], AddressRole.REMOTE);
         if (local == null || local.port() == null) {
             return null;
         }
@@ -117,8 +117,8 @@ public class NetstatParser {
                 return null;
             }
 
-            AddressPort local = parseAddressPort(columns[1]);
-            AddressPort remote = parseAddressPort(columns[2]);
+            AddressPort local = parseAddressPort(columns[1], AddressRole.LOCAL);
+            AddressPort remote = parseAddressPort(columns[2], AddressRole.REMOTE);
             Integer pid = parseInteger(columns[4]);
             if (local == null || local.port() == null || pid == null) {
                 return null;
@@ -140,8 +140,8 @@ public class NetstatParser {
             return null;
         }
 
-        AddressPort local = parseAddressPort(columns[1]);
-        AddressPort remote = parseAddressPort(columns[2]);
+        AddressPort local = parseAddressPort(columns[1], AddressRole.LOCAL);
+        AddressPort remote = parseAddressPort(columns[2], AddressRole.REMOTE);
         Integer pid = parseInteger(columns[3]);
         if (local == null || local.port() == null || pid == null) {
             return null;
@@ -188,7 +188,7 @@ public class NetstatParser {
         return null;
     }
 
-    private AddressPort parseAddressPort(String value) {
+    private AddressPort parseAddressPort(String value, AddressRole role) {
         if (value == null || value.isBlank() || "*:*".equals(value)) {
             return null;
         }
@@ -200,6 +200,9 @@ public class NetstatParser {
 
         String rawAddress = value.substring(0, separator);
         String rawPort = value.substring(separator + 1);
+        if ("*".equals(rawAddress) && role == AddressRole.REMOTE) {
+            return null;
+        }
         if ("*".equals(rawPort)) {
             return null;
         }
@@ -215,6 +218,9 @@ public class NetstatParser {
         String address = rawAddress;
         if (address.startsWith("[") && address.endsWith("]")) {
             address = address.substring(1, address.length() - 1);
+        }
+        if ("*".equals(address)) {
+            return "0.0.0.0";
         }
 
         int zoneIndex = address.indexOf('%');
@@ -233,5 +239,10 @@ public class NetstatParser {
     }
 
     private record AddressPort(String address, Integer port) {
+    }
+
+    private enum AddressRole {
+        LOCAL,
+        REMOTE
     }
 }
