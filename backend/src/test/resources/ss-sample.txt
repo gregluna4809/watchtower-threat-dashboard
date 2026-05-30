@@ -1,0 +1,8 @@
+Netid State  Recv-Q Send-Q Local Address:Port     Peer Address:Port Process
+udp   UNCONN 0      0          127.0.0.53%lo:53        0.0.0.0:*     users:(("systemd-resolve",pid=744,fd=14))
+udp   UNCONN 0      0               0.0.0.0:5353       0.0.0.0:*     -
+tcp   LISTEN 0      4096            0.0.0.0:22         0.0.0.0:*     users:(("sshd",pid=1234,fd=3))
+tcp   ESTAB  0      0              10.0.0.2:54612 142.250.190.14:443 users:(("chrome",pid=4321,fd=72))
+tcp   TIME-WAIT 0   0              10.0.0.2:54613 93.184.216.34:443
+tcp   LISTEN 0      511                [::]:80             [::]:*     users:(("nginx",pid=111,fd=6))
+tcp   ESTAB  0      0              [fe80::1%eth0]:53144 [2606:4700:4700::1111]:443 users:(("curl",pid=9876,fd=5))

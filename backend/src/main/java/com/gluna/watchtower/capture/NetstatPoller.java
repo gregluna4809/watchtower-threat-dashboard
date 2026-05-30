@@ -34,17 +34,36 @@ public class NetstatPoller {
     @Scheduled(fixedDelayString = "${watchtower.capture.poll-interval-ms:3000}")
     public void poll() {
         try {
-            List<String> lines = commandRunner.runLines(List.of("netstat", "-ano"), commandTimeout);
-            List<ConnectionSnapshot> snapshots = netstatParser.parse(lines, Instant.now());
+            List<String> command = captureCommand();
+            List<String> lines = commandRunner.runLines(command, commandTimeout);
+            List<ConnectionSnapshot> snapshots = parse(lines, Instant.now());
             latest.set(snapshots);
             logSummary(snapshots);
         } catch (CaptureException ex) {
-            log.warn("Netstat poll failed: {}", ex.getMessage());
+            log.warn("Socket poll failed: {}", ex.getMessage());
         }
     }
 
     public List<ConnectionSnapshot> getLatest() {
         return latest.get();
+    }
+
+    private List<String> captureCommand() {
+        if (isLinux()) {
+            return List.of("ss", "-tunap");
+        }
+        return List.of("netstat", "-ano");
+    }
+
+    private List<ConnectionSnapshot> parse(List<String> lines, Instant observedAt) {
+        if (isLinux()) {
+            return netstatParser.parseSs(lines, observedAt);
+        }
+        return netstatParser.parse(lines, observedAt);
+    }
+
+    private boolean isLinux() {
+        return System.getProperty("os.name", "").toLowerCase().contains("linux");
     }
 
     private void logSummary(List<ConnectionSnapshot> snapshots) {
@@ -59,7 +78,7 @@ public class NetstatPoller {
                 .count();
 
         log.info(
-                "Netstat poll: {} rows ({} TCP, {} UDP, {} established)",
+                "Socket poll: {} rows ({} TCP, {} UDP, {} established)",
                 snapshots.size(),
                 tcpCount,
                 udpCount,
@@ -67,4 +86,3 @@ public class NetstatPoller {
         );
     }
 }
-

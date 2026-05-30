@@ -16,7 +16,10 @@ FROM eclipse-temurin:21-jre AS runtime
 
 WORKDIR /app
 
-RUN groupadd --system watchtower \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends iproute2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system watchtower \
     && useradd --system --gid watchtower --home-dir /app --shell /usr/sbin/nologin watchtower
 
 COPY --from=builder --chown=watchtower:watchtower /workspace/target/watchtower-0.0.1-SNAPSHOT.jar /app/watchtower.jar
