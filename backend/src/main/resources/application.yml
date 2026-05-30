@@ -21,6 +21,8 @@ watchtower:
     command-timeout-ms: 5000
   ingest:
     interval-ms: 3500
+  observer:
+    token: ${WATCHTOWER_OBSERVER_TOKEN:}
   websocket:
     allowed-origin-patterns: http://127.0.0.1:5173,http://localhost:5173,https://watchtower.pulse-forge.com
   enrichment:

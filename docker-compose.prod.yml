@@ -27,6 +27,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${WATCHTOWER_DB_USER:-watchtower}
       SPRING_DATASOURCE_PASSWORD: ${WATCHTOWER_DB_PASSWORD:?WATCHTOWER_DB_PASSWORD is required}
       ABUSEIPDB_API_KEY: ${ABUSEIPDB_API_KEY:-}
+      WATCHTOWER_OBSERVER_TOKEN: ${WATCHTOWER_OBSERVER_TOKEN:-}
     expose:
       - "8088"
     networks:
@@ -45,6 +46,34 @@ services:
       - "80"
     networks:
       - edge
+
+  host-observer:
+    profiles:
+      - host-observer
+    build:
+      context: ./host-observer
+      dockerfile: Dockerfile
+    container_name: watchtower-host-observer
+    restart: unless-stopped
+    depends_on:
+      - backend
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+    environment:
+      WATCHTOWER_BACKEND_URL: http://watchtower-backend:8088/internal/v1/host-snapshots
+      WATCHTOWER_OBSERVER_TOKEN: ${WATCHTOWER_OBSERVER_TOKEN:-}
+      WATCHTOWER_OBSERVER_INTERVAL_SECONDS: ${WATCHTOWER_OBSERVER_INTERVAL_SECONDS:-3}
+      WATCHTOWER_SS_COMMAND: nsenter --net=/host/proc/1/ns/net ss -tunap
+    networks:
+      - default
 
 volumes:
   watchtower_pgdata:

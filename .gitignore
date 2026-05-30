@@ -61,6 +61,8 @@ docker-data/
 # Logs / temp files
 logs/
 *.log
+__pycache__/
+*.pyc
 
 tmp/
 temp/

@@ -64,6 +64,11 @@ public class IngestService {
     @Transactional
     public void ingestLatestSnapshots() {
         List<ConnectionSnapshot> snapshots = netstatPoller.getLatest();
+        ingestSnapshots(snapshots);
+    }
+
+    @Transactional
+    public void ingestSnapshots(List<ConnectionSnapshot> snapshots) {
         if (snapshots.isEmpty()) {
             log.debug("Ingest skipped: no snapshots available");
             return;

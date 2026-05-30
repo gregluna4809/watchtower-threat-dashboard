@@ -22,6 +22,8 @@ watchtower:
     command-timeout-ms: <command_timeout_ms>
   ingest:
     interval-ms: <ingest_interval_ms>
+  observer:
+    token: <internal_host_observer_bearer_token>
   enrichment:
     interval-ms: <enrichment_interval_ms>
   scoring:
